@@ -1,0 +1,15 @@
+Models:
+    Penalty/Ref Crew
+    Penalty/Drive
+    Penalty/Game_detail
+    Penalty/Standings
+
+
+Schema:
+    add game_id and other primary keys to all the csv files
+
+    Unique Penalties from Penalties.csv
+    add those as columns to the other csv files
+    start 0
+
+    los to 0-100 (drives)
