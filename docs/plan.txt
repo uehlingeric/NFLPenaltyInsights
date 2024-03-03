@@ -12,4 +12,4 @@ Schema:
     add those as columns to the other csv files
     start 0
 
-    los to 0-100 (drives)
+    los to 0-100 (drives) DONE
