@@ -13,3 +13,10 @@ Schema:
     start 0
 
     los to 0-100 (drives) DONE
+
+Plan: 
+    Clean Penalties.csv: Remove Phase:ST Rows, Add column: 'Pen' - Combination of Phase and Penalty, Ex: Off_Unnecessary_Roughness (Replace space with underscore)
+
+    Take Unique Pen values, add as columns (intialized at 0) to team_performances.csv.
+
+    Incremeent penalty columns in team_performances.csv by determining when a penalty happened. (Quarter,Time, in penalties.csv and quarter,time, in team_performances.csv)
