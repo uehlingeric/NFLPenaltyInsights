@@ -1,161 +1,169 @@
-import numpy as np
+"""
+Clean Penalties Script
+Author: Leo DiPerna
+Date: 2024-4-17
+
+Description: Cleans the penalties.csv file and conforms it to the schema of the other data files.
+"""
 import pandas as pd
 
-
-def clean_week(penalties_df):
+def load_data():
     """
-    Update weeks to account for the week that was added to the NFL season in
-    2021.
+    Load data from CSV files.
     """
-    def clean_week(row):
-        d = {
-            'Conference Championships': 20,
-            'Divisional Playoffs': 19,
-            'Super Bowl': 21,
-            'Wildcard Weekend': 18,
-        }
-        week = row.Week
-        return (
-            int(week)
-            if week.isnumeric()
-            else int(d[week] + (1 if row.Year >= 2021 else 0))
-        )
+    penalties = pd.read_csv('../../data/raw/penalties.csv')
+    game_details = pd.read_csv('../../data/raw/game_detail.csv')
+    return penalties, game_details
 
-    penalties_df["Week"] = penalties_df.apply(clean_week, axis=1) 
-    return penalties_df
-
-
-def add_team_id(penalties_df):
+def get_valid_game_ids(game_details):
     """
-    Add column for our team ID format to the penalties df.
+    Get the valid game IDs from the game_details dataframe.
     """
-    teams = pd.read_csv("../../data/processed/teams.csv")
-    teams["team_dashed"] = teams.apply(
-        lambda row: (
-            (str(row.city) + "-" + str(row["name"])).lower().replace(" ", "-")
-        ),
-        axis=1,
-    )
-    team_dashed_to_team_id = teams.set_index('team_dashed')['team_id'].to_dict()
+    return set(game_details['game_id'])
 
-    penalties_df["Team_ID"] = penalties_df.apply(
-        lambda row: team_dashed_to_team_id[row.Team], axis=1,
-    )
-    return penalties_df
-
-
-def add_opp_team_id(penalties_df):
+def map_ids(penalties):
     """
-    Add column for the opposing team's ID to the penalties df. This is necessary
-    because the current ID is in a different format.
+    Map team and opponent IDs to the penalties dataframe.
     """
-    teams = pd.read_csv("../../data/processed/teams.csv")
-    teams["city_name"] = teams.apply(lambda row: str(row.city) + " " + str(row["name"]), axis=1)
-    city_name_to_team_id = teams.set_index('city_name')['team_id'].to_dict()
-    city_to_city_name = teams.set_index('city')['city_name'].to_dict()
+    team_id_mapping = {
+        'arizona-cardinals': 'ARI', 'atlanta-falcons': 'ATL', 'baltimore-ravens': 'BAL',
+        'buffalo-bills': 'BUF', 'carolina-panthers': 'CAR', 'chicago-bears': 'CHI',
+        'cincinnati-bengals': 'CIN', 'cleveland-browns': 'CLE', 'dallas-cowboys': 'DAL',
+        'denver-broncos': 'DEN', 'detroit-lions': 'DET', 'green-bay-packers': 'GB',
+        'houston-texans': 'HOU', 'indianapolis-colts': 'IND', 'jacksonville-jaguars': 'JAX',
+        'kansas-city-chiefs': 'KC', 'las-vegas-raiders': 'LV', 'los-angeles-chargers': 'LAC',
+        'los-angeles-rams': 'LAR', 'miami-dolphins': 'MIA', 'minnesota-vikings': 'MIN',
+        'new-england-patriots': 'NE', 'new-orleans-saints': 'NO', 'new-york-giants': 'NYG',
+        'new-york-jets': 'NYJ', 'philadelphia-eagles': 'PHI', 'pittsburgh-steelers': 'PIT',
+        'san-francisco-49ers': 'SF', 'seattle-seahawks': 'SEA', 'tampa-bay-buccaneers': 'TB',
+        'tennessee-titans': 'TEN', 'washington-commanders': 'WAS'
+    }
 
-    def opp_to_team_id(row):
-        d = {
-            "LA Chargers": "Los Angeles Chargers",
-            "LA Rams": "Los Angeles Rams",
-            "N.Y. Giants": "New York Giants",
-            "N.Y. Jets": "New York Jets",
-            "St. Louis": "Los Angeles Rams",
-            "San Diego": "Los Angeles Chargers",
-            "Oakland": "Las Vegas Raiders",
-        }
-        opp = row.Opp
-        return city_name_to_team_id[city_to_city_name[opp]] if opp not in d else \
-            city_name_to_team_id[d[opp]]
+    opp_id_mapping = {
+        'San Francisco': 'SF', 'Jacksonville': 'JAX', 'Arizona': 'ARI', 'Indianapolis': 'IND',
+        'Houston': 'HOU', 'Seattle': 'SEA', 'N.Y. Giants': 'NYG', 'Carolina': 'CAR',
+        'Chicago': 'CHI', 'St. Louis': 'LAR', 'Tennessee': 'TEN', 'Minnesota': 'MIN',
+        'Detroit': 'DET', 'Green Bay': 'GB', 'New Orleans': 'NO', 'Miami': 'MIA',
+        'New England': 'NE', 'Dallas': 'DAL', 'Washington': 'WAS', 'Tampa Bay': 'TB',
+        'Philadelphia': 'PHI', 'N.Y. Jets': 'NYJ', 'Buffalo': 'BUF', 'Kansas City': 'KC',
+        'San Diego': 'LAC', 'Cleveland': 'CLE', 'Cincinnati': 'CIN', 'Denver': 'DEN',
+        'Pittsburgh': 'PIT', 'Oakland': 'LV', 'Atlanta': 'ATL', 'Baltimore': 'BAL',
+        'LA Rams': 'LAR', 'LA Chargers': 'LAC', 'Las Vegas': 'LV'
+    }
+    penalties['team_id'] = penalties['Team'].map(team_id_mapping)
+    penalties['opp_id'] = penalties['Opp'].map(opp_id_mapping)
+    return penalties
+
+def preprocess_data(penalties):
+    """
+    Preprocess the penalties dataframe.
+    """
+    penalties = penalties[penalties['Phase'].isin(['Off', 'Def', 'ST'])].copy()  
+    penalties['Date'] = pd.to_datetime(penalties['Date'], errors='coerce')
+    penalties['penalty'] = penalties['Phase'] + '_' + penalties['Penalty'].str.replace(' ', '_').str.replace('Offensive_', '').str.replace('Defensive_', '')
+    penalties.drop('Penalty', axis=1, inplace=True)
+    penalties.columns = [col.lower().replace(' ', '_') for col in penalties.columns]
+    return penalties
+
+def adjust_week(row):
+    """
+    Adjust the week number for the postseason and return if it is postseason.
+    """
+    postseason_mapping = {
+        "Wildcard Weekend": 18,
+        "Divisional Playoffs": 19,
+        "Conference Championships": 20,
+        "Super Bowl": 21
+    }
+    is_postseason = False
+    if row['year'] <= 2020:
+        if row['week'] in postseason_mapping:
+            row['week'] = postseason_mapping[row['week']]
+            is_postseason = True
+    elif row['year'] >= 2021:
+        if row['week'] in postseason_mapping:
+            row['week'] = postseason_mapping[row['week']] + 1
+            is_postseason = True
+    return row['week'], is_postseason
+
+def generate_game_id(row):
+    """
+    Generate a game ID based on the row data.
+    """
+    if row['home'] == 'Yes':
+        return f"{row['year']}_{row['week']}_{row['opp_id']}_{row['team_id']}"
+    else:
+        return f"{row['year']}_{row['week']}_{row['team_id']}_{row['opp_id']}"
+
+def verify_and_adjust_game_id(row, valid_game_ids):
+    """
+    Verify and adjust the game ID if necessary. Applicable for superbowl games as home team is not always correct.
+    """
+    if row['game_id'] not in valid_game_ids:
+        parts = row['game_id'].split('_')
+        parts[2], parts[3] = parts[3], parts[2]
+        adjusted_game_id = '_'.join(parts)
+        if adjusted_game_id in valid_game_ids:
+            row['home'] = 'No' if row['home'] == 'Yes' else 'Yes'
+            return adjusted_game_id, row['home']
+    return row['game_id'], row['home']
+
+def apply_adjustments(penalties, valid_game_ids):
+    """
+    Apply adjustments to the penalties dataframe.
+    """
+    week_postseason = penalties.apply(lambda row: adjust_week(row), axis=1, result_type='expand')
+    penalties['week'] = week_postseason[0]
+    penalties['postseason'] = week_postseason[1].map({True: 'Yes', False: 'No'})
+
+    penalties.loc[:, 'game_id'] = penalties.apply(generate_game_id, axis=1)
+
+    adjustments = penalties.apply(lambda row: verify_and_adjust_game_id(row, valid_game_ids), axis=1, result_type='expand')
+    penalties.loc[:, 'game_id'] = adjustments[0]
+    penalties.loc[:, 'home'] = adjustments[1]
     
-    penalties_df["Opp_Team_ID"] = penalties_df.apply(opp_to_team_id, axis=1)
-    return penalties_df
+    return penalties
 
-
-def clean_year(penalties_df):
+def compute_time_left_helper(row):
     """
-    Some of the years were messed up for the latest year of games, so this fixes
-    that issue.
+    Compute the time left in the game based on the quarter and time columns.
     """
-    def clean_year(row):
-        date_month, _, date_year = row.Date.split("/")
-        if (
-            (date_year == "2023" and str(row.Year) == "2024") or
-            (date_year == "2024" and int(date_month) <= 2)
-        ):
-            return "2023"
-        return row.Year
-    
-    penalties_df["Year"] = penalties_df.apply(clean_year, axis=1)
-    return penalties_df
+    quarter_time_left = (4 - row['quarter']) * 15
+    time_parts = [int(t) for t in row['time'].split(':')]
+    minute_left = quarter_time_left + time_parts[0] + (time_parts[1] / 60)
+    total_seconds = int(minute_left * 60)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
 
-
-def add_game_id(penalties_df):
+def compute_time_left(penalties):
     """
-    Add the game ID to the penalties df so that we can cross-references games
-    with those in other df's. Reverse ID, with teams swapped, is necessary
-    because we don't know which order they will be in in the other df's.
+    Compute the time left in the game based on the quarter and time columns.
     """
-    penalties_df["Game_ID"] = penalties_df.apply(
-        lambda row: "_".join(
-            [str(row.Year),
-             str(row.Week),
-             str(row.Team_ID),
-             str(row.Opp_Team_ID)],
-            ),
-           axis=1,
-    )
-    penalties_df["Reverse_Game_ID"] = penalties_df.apply(
-        lambda row: "_".join(
-            [str(row.Year),
-             str(row.Week),
-             str(row.Opp_Team_ID),
-             str(row.Team_ID)]),
-            axis=1,
-    )
-    return penalties_df
+    penalties['time_left'] = penalties.apply(compute_time_left_helper, axis=1)
+    return penalties
 
-
-def add_time_left(penalties_df):
+def finalize_dataframe(penalties):
     """
-    Add a column indicating how many seconds are left in the game.
+    Finalize the penalties dataframe and save it to a CSV file.
     """
-    def time_left(row):
-        mins, secs = row.Time.split(":")
-        return 60 * (60 - 15 * int(row.Quarter)) + 60 * int(mins) + int(secs)
-    
-    penalties_df["Time_Left"] = penalties_df.apply(time_left, axis=1)
-    return penalties_df
-
+    column_order = [
+        'game_id', 'team_id', 'opp_id', 'penalty', 'player', 'pos', 'date', 'year', 'week',
+        'quarter', 'time', 'time_left', 'down', 'dist', 'ref_crew', 'declined',
+        'offsetting', 'yardage', 'home', 'postseason', 'phase'
+    ]
+    penalties = penalties[column_order]
+    penalties = penalties.sort_values(by=['date', 'team_id', 'time_left'], ascending=[True, True, False])
+    penalties.to_csv('../../data/processed/penalties.csv', index=False)
 
 def main():
-    penalties_df = pd.read_csv("../../data/raw/penalties.csv")
+    penalties, game_details = load_data()
+    valid_game_ids = get_valid_game_ids(game_details)
+    penalties = map_ids(penalties)
+    penalties = preprocess_data(penalties)
+    penalties = apply_adjustments(penalties, valid_game_ids)
+    penalties = compute_time_left(penalties)
+    finalize_dataframe(penalties)
 
-    # Filter out rows pertaining to special teams penalties_df
-    penalties_df = penalties_df[penalties_df.Phase != "ST"]
-
-    # Filter out rows where the time is invalid
-    penalties_df = penalties_df[penalties_df.apply(
-        lambda row: type(row.Time) is str, axis=1)
-    ]
-
-    # Add a column that uniquely identifies the penalty and whether it occurred
-    # on offense or defense
-    penalties_df["Phase_Penalty"] = penalties_df.apply(
-        lambda row: (str(row.Phase) + " " + str(row.Penalty)).replace(" ", "_"),
-        axis=1,
-    )
-
-    penalties_df = clean_week(penalties_df)
-    penalties_df = add_team_id(penalties_df)
-    penalties_df = add_opp_team_id(penalties_df)
-    penalties_df = clean_year(penalties_df)
-    penalties_df = add_game_id(penalties_df)
-    penalties_df = add_time_left(penalties_df)
-
-    penalties_df.to_csv("../../data/processed/penalties.csv", index=False)
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-
