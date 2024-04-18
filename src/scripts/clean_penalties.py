@@ -7,6 +7,7 @@ Description: Cleans the penalties.csv file and conforms it to the schema of the 
 """
 import pandas as pd
 
+
 def load_data():
     """
     Load data from CSV files.
@@ -15,11 +16,13 @@ def load_data():
     game_details = pd.read_csv('../../data/raw/game_detail.csv')
     return penalties, game_details
 
+
 def get_valid_game_ids(game_details):
     """
     Get the valid game IDs from the game_details dataframe.
     """
     return set(game_details['game_id'])
+
 
 def map_ids(penalties):
     """
@@ -54,16 +57,22 @@ def map_ids(penalties):
     penalties['opp_id'] = penalties['Opp'].map(opp_id_mapping)
     return penalties
 
+
 def preprocess_data(penalties):
     """
     Preprocess the penalties dataframe.
     """
-    penalties = penalties[penalties['Phase'].isin(['Off', 'Def', 'ST'])].copy()  
+    penalties = penalties[penalties['Phase'].isin(['Off', 'Def', 'ST'])].copy()
     penalties['Date'] = pd.to_datetime(penalties['Date'], errors='coerce')
-    penalties['penalty'] = penalties['Phase'] + '_' + penalties['Penalty'].str.replace(' ', '_').str.replace('Offensive_', '').str.replace('Defensive_', '')
+    penalties['penalty'] = penalties['Phase'] + '_' + penalties['Penalty'].str.replace(' ', '_').str.replace('Offensive_', '').str.replace(
+        'Defensive_', '').str.replace('_(15_Yards)', '').str.replace('_(5_Yards)', '').str.replace('_(5_Yards)', '')
     penalties.drop('Penalty', axis=1, inplace=True)
-    penalties.columns = [col.lower().replace(' ', '_') for col in penalties.columns]
+    penalties.columns = [col.lower().replace(' ', '_')
+                         for col in penalties.columns]
+    penalties['year'] = penalties['date'].dt.year
+    penalties.loc[penalties['date'].dt.month <= 3, 'year'] -= 1
     return penalties
+
 
 def adjust_week(row):
     """
@@ -86,6 +95,7 @@ def adjust_week(row):
             is_postseason = True
     return row['week'], is_postseason
 
+
 def generate_game_id(row):
     """
     Generate a game ID based on the row data.
@@ -94,6 +104,7 @@ def generate_game_id(row):
         return f"{row['year']}_{row['week']}_{row['opp_id']}_{row['team_id']}"
     else:
         return f"{row['year']}_{row['week']}_{row['team_id']}_{row['opp_id']}"
+
 
 def verify_and_adjust_game_id(row, valid_game_ids):
     """
@@ -108,21 +119,26 @@ def verify_and_adjust_game_id(row, valid_game_ids):
             return adjusted_game_id, row['home']
     return row['game_id'], row['home']
 
+
 def apply_adjustments(penalties, valid_game_ids):
     """
     Apply adjustments to the penalties dataframe.
     """
-    week_postseason = penalties.apply(lambda row: adjust_week(row), axis=1, result_type='expand')
+    week_postseason = penalties.apply(
+        lambda row: adjust_week(row), axis=1, result_type='expand')
     penalties['week'] = week_postseason[0]
-    penalties['postseason'] = week_postseason[1].map({True: 'Yes', False: 'No'})
+    penalties['postseason'] = week_postseason[1].map(
+        {True: 'Yes', False: 'No'})
 
     penalties.loc[:, 'game_id'] = penalties.apply(generate_game_id, axis=1)
 
-    adjustments = penalties.apply(lambda row: verify_and_adjust_game_id(row, valid_game_ids), axis=1, result_type='expand')
+    adjustments = penalties.apply(lambda row: verify_and_adjust_game_id(
+        row, valid_game_ids), axis=1, result_type='expand')
     penalties.loc[:, 'game_id'] = adjustments[0]
     penalties.loc[:, 'home'] = adjustments[1]
-    
+
     return penalties
+
 
 def compute_time_left_helper(row):
     """
@@ -136,12 +152,14 @@ def compute_time_left_helper(row):
     minutes, seconds = divmod(remainder, 60)
     return f"{hours:02}:{minutes:02}:{seconds:02}"
 
+
 def compute_time_left(penalties):
     """
     Compute the time left in the game based on the quarter and time columns.
     """
     penalties['time_left'] = penalties.apply(compute_time_left_helper, axis=1)
     return penalties
+
 
 def finalize_dataframe(penalties):
     """
@@ -153,8 +171,10 @@ def finalize_dataframe(penalties):
         'offsetting', 'yardage', 'home', 'postseason', 'phase'
     ]
     penalties = penalties[column_order]
-    penalties = penalties.sort_values(by=['date', 'team_id', 'time_left'], ascending=[True, True, False])
+    penalties = penalties.sort_values(
+        by=['date', 'game_id', 'time_left'], ascending=[True, True, False])
     penalties.to_csv('../../data/processed/penalties.csv', index=False)
+
 
 def main():
     penalties, game_details = load_data()
@@ -164,6 +184,7 @@ def main():
     penalties = apply_adjustments(penalties, valid_game_ids)
     penalties = compute_time_left(penalties)
     finalize_dataframe(penalties)
+
 
 if __name__ == '__main__':
     main()
