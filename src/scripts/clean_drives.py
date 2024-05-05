@@ -1,3 +1,10 @@
+"""
+Clean Drives Script
+Author: Leo DiPerna and Eric Uehling
+Date: 2024-5-1
+
+Description: Cleans the drives.csv file and conforms it to the schema of the other data files.
+"""
 import pandas as pd
 
 # Read in the data
@@ -9,7 +16,7 @@ games_df = pd.read_csv('../../data/raw/game_detail.csv')
 drives_df.loc[(drives_df['quarter'].isnull()) & (drives_df['result'] == 'End of Half'), 'quarter'] = 2
 drives_df.loc[(drives_df['quarter'].isnull()) & (drives_df['result'] == 'End of Game'), 'quarter'] = 4
 
-# Update 'result' values based on 'quarter'
+# Fix 'result' values based on 'quarter'
 drives_df.loc[(drives_df['quarter'] == 4) & (drives_df['result'] == 'End of Half'), 'result'] = 'End of Game'
 drives_df.loc[(drives_df['quarter'] == 2) & (drives_df['result'] == 'End of Game'), 'result'] = 'End of Half'
 
@@ -46,8 +53,11 @@ drives_df['los'] = drives_df['los'].fillna(100).astype(int)
 drives_df = pd.merge(drives_df, games_df[['game_id', 'date']], on='game_id', how='left')
 drives_df = drives_df.sort_values(by=['date', 'game_id', 'time_left'], ascending=[True, True, False])
 
-# Penalty implementation
-filtered_penalties = penalties_df[penalties_df['phase'] != 'ST'].copy()
+# Filter penalties to only penalties that occur 50+ times and are not special teams penalties
+penalties_count = penalties_df['penalty'].value_counts()
+frequent_penalties = penalties_count[penalties_count >= 50].index.tolist()
+filtered_penalties = penalties_df[(penalties_df['phase'] != 'ST') & (penalties_df['penalty'].isin(frequent_penalties))].copy()
+
 unique_penalties = filtered_penalties['penalty'].unique()
 for penalty in unique_penalties:
     drives_df[penalty] = 0

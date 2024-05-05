@@ -1,0 +1,8 @@
+pandas
+sklearn
+matplotlib
+seaborn
+tensorflow
+keras
+keras_tuner
+statsmodels.api

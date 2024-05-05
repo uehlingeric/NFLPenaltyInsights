@@ -1,6 +1,6 @@
 """
 Clean Penalties Script
-Author: Leo DiPerna
+Author: Leo DiPerna and Eric Uehling
 Date: 2024-4-17
 
 Description: Cleans the penalties.csv file and conforms it to the schema of the other data files.
