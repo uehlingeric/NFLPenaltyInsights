@@ -1,8 +1,8 @@
-# NFL Penalty Data Analysis Project
+# NFL Penalty Data Machine Learning Project
 
 ## Project Overview
 
-This project focuses on the machine learning analysis of NFL penalties to predict their occurrence and evaluate their effectiveness in terms of points, wins and final standing. Through comprehensive data collection, cleaning, and analysis, we aim to provide insights into how penalties influence the game's outcome and offer predictive models that could be useful for teams, analysts, and fans alike.
+This project focuses on the machine learning analysis of NFL penalties to predict their occurrence and evaluate their effectiveness in terms of drive outcomes. Through comprehensive data collection, cleaning, and analysis, we aim to provide insights into how penalties influence the game's outcome and offer predictive models that could be useful for teams, analysts, and fans alike.
 
 ## Data Collection
 
@@ -14,15 +14,36 @@ The data collection process involved writing custom scripts to scrape NFL game a
 
 ## Data Cleaning and Schema Finalization
 
-After collecting the data, the next crucial step was cleaning and structuring it according to our finalized schema. This phase was collaborative, with contributions from team members to ensure data quality and consistency. The process involved:
+The scraped data is then cleaned to a relational schema of csv files. These files have corresponding fields of game_id and team_id, allowing for relational analysis. 
 
 - **Data Cleaning:** Addressing missing values, removing outliers, and standardizing formats across the dataset.
 - **Schema Design:** Finalizing a database schema that supports efficient analysis and machine learning model development. This included defining the structure for storing games, penalties, teams, and their relationships.
 
-## Team Contributions
+## Exploratory Data Analysis
 
-- **Eric:** Focused on the data collection phase, Eric wrote the `missing.py`, `scrape_games.py`, and `scrape_penalties.py` scripts. 
-- **Rohan and Leo:** Worked collaboratively on cleaning the data and finalizing the schema. 
+The next step that was implemented was the exploratory data analysis of the `penalties.csv` file. The following graphs were created for a better understanding of the dataset, and can be found at `penalties_eda.ipynb`:
+
+- Most Common Offensive Penalties
+- Most Common Defensive Penalties
+- Most Yards by Offensive Penalties
+- Most yards by Defensive Penalties
+- Most Yards Lost by Teams
+- Most Yards Gained by Teams
+- Most Yards by Position
+- Average Number of Penalties by Ref Crew
+- Penalty Counts by Minute (Timeseries)
+
+## Model Descriptions
+
+We used a variety of models to uncover predictive insights on the amount of each type of penalty for a given game, and the amount of points a drive will result in.
+
+The models we used are as follows:
+
+- In `drives.ipynb`, we implemented a GradientBoostingClassifier and a GradientBoostingRegressor model, along with a prediction function. These models predict the end result of a drive (Touchdown, Field Goal, or Nothing), taking in [`total_off_pen`, `total_def_pen`, `total_off_pen_yards`, `total_def_pen_yards`, `los`, `time_left_seconds`] as input features. We found the Classifier model to be the best performing model, as the introduction of the respective points for each result negatively impacted the Regressor model.
+
+- In `penalties.ipynb`, we implemented an ensemble of NegativeBinomial models, along with a prediction function. These models predict the amount of penalties for each type of penalty, taking in [`team_id`, `opp_id`, `year`, `week`, `ref_crew`, `home`, `postseason`]  as input features. Unfortunately we found that no matter what type of model we used, the end result always came up to be pretty much the same as a regular statistical average.
+
+- In `nn.ipynb`, we attempted to fix the underyling issues found in our NegativeBinomial ensemble model by creating a custom neural network with TensorFlow and Keras. Our neural network implementation ended up with extremely similiar results to our intial model, that we concluded the lack of singular player data in our schema severely constricts predictive performance.
 
 ## How to Use This Project
 
@@ -32,9 +53,20 @@ To collect the data needed for analysis, follow these steps:
 2. **Execute `scrape_games.py`:** Collects game data based on the output from `missing.py`.
 3. **Run `scrape_penalties.py`:** Collects penalty data and is not related to `missing.py`.
 
+### Cleaning
+To clean the data to our schema:
+1. **Run `clean_penalties.py`:** Cleans the penalties.csv file to the processed directory.
+2. **Run `clean_drives.py`:** Cleans the drives.csv file to the processed directory.
+3. **Run `clean_games.py`:** Cleans the team_performances.csv file to the processed directory.
+
+### Model Creation and EDA
+Notebooks should run as intended once the dependent libraries are installed.
+
 ## Dependencies
 
 This project requires the following libraries:
+
+### Scraping Aspect
 - BeautifulSoup
 - Selenium
 - pandas
@@ -48,12 +80,21 @@ pip install beautifulsoup4 selenium pandas requests
 
 Additionally, you will need the appropriate ChromeDriver for Selenium.
 
-## Future Work
+### Model Aspect
+- pandas
+- matplotlib
+- seaborn
+- tensorflow
+- keras
+- keras_tuner
+- sklearn
+- statsmodels.api
 
-We have completed the scraping process and are nearing the end of the cleaning process. The next steps involve developing our models for future analysis, which will allow us to predict penalties and evaluate their impact more effectively.
+```bash
+pip install pandas matplotlib seaborn tensorflow keras keras_tuner sklearn statsmodels.api
+```
 
 ## Credits
 
-- **Eric:** Data collection and scripting.
-- **Rohan:** Data cleaning and schema finalization.
-- **Leo:** Data cleaning and schema finalization.
+- **Eric:** Data scraping, cleaning, and model creation.
+- **Leo:** Data cleaning, eda, and model creation.
