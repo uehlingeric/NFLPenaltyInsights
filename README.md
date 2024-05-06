@@ -4,6 +4,8 @@
 
 This project focuses on the machine learning analysis of NFL penalties to predict their occurrence and evaluate their effectiveness in terms of drive outcomes. Through comprehensive data collection, cleaning, and analysis, we aim to provide insights into how penalties influence the game's outcome and offer predictive models that could be useful for teams, analysts, and fans alike.
 
+Our final report can be found at `docs/final-report.pdf`. Our models and EDA notebooks can be found in the `notebooks/` directory.
+
 ## Data Collection
 
 The data collection process involved writing custom scripts to scrape NFL game and penalty data from various sources. This process was divided into several steps:

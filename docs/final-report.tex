@@ -299,14 +299,90 @@ normal situations.
 
 \section{Results}
 
-In this section, we will discuss the models that we made, the accuracy of each
-model, and what we can learn from each model in the context of football.
+\subsection{Gradient Boosting Classifier for Drive Outcomes}
 
-TODO: Subsubsection for each model
+The Gradient Boosting Classifier was designed to predict the outcome of a drive (Touchdown, Field Goal, or No Score) based on penalties. Here are the detailed results:
+
+\textbf{Classification Metrics:}
+\begin{itemize}
+    \item Accuracy: 67\%
+    \item Precision, Recall, and F1-Score for each class:
+    \begin{itemize}
+        \item Field Goal: Precision = 43\%, Recall = 2\%, F1-Score = 3\%
+        \item Touchdown: Precision = 54\%, Recall = 21\%, F1-Score = 30\%
+        \item No Score: Precision = 68\%, Recall = 97\%, F1-Score = 80\%
+    \end{itemize}
+\end{itemize}
+
+\textbf{Feature Importance:}
+\begin{table}[h]
+\centering
+\begin{tabular}{lc}
+\hline
+\textbf{Feature} & \textbf{Importance} \\
+\hline
+Total Defensive Penalties & 0.4298 \\
+Line of Scrimmage (los) & 0.2426 \\
+Time Left in Seconds & 0.1873 \\
+Total Defensive Penalty Yards & 0.0804 \\
+Total Offensive Penalty Yards & 0.0311 \\
+Total Offensive Penalties & 0.0289 \\
+\hline
+\end{tabular}
+\caption{Feature importance for the Gradient Boosting Classifier model.}
+\end{table}
+
+\subsection{Gradient Boosting Regressor for Drive Points}
+
+This model aimed to predict the number of points scored during a drive. 
+
+\textbf{Performance Metrics:}
+\begin{itemize}
+    \item Mean Squared Error (MSE): 6.885
+    \item R-Squared (R²): 0.136
+\end{itemize}
+
+Despite its relatively low explanatory power, this model highlights the complexities of directly linking penalties to scoring outcomes without considering more contextual game factors.
+
+\subsection{Negative Binomial Model for Penalty Prediction}
+
+An ensemble of Negative Binomial models was used to predict the frequency of specific penalties based on game context and referee crews.
+
+\textbf{Sample Model Performance - Offensive Holding:}
+\begin{itemize}
+    \item Mean Squared Error (MSE): 1.137
+    \item R-Squared (R²): 0.053
+\end{itemize}
+
+The weights for different predictors like team ID, opponent ID, and referee crew suggest nuanced influences on penalty calls. However, the low R² values across all models indicate limited predictability based on the available features.
+
+\subsection{Neural Network Model}
+
+Our neural network model aimed to refine predictions by incorporating a broader set of input features and more complex interactions.
+
+\textbf{Performance Metrics:}
+\begin{itemize}
+    \item Best Validation Loss: 0.0070
+    \item Test Mean Absolute Error (MAE): 0.0396
+\end{itemize}
+
+Despite detailed tuning, the neural network did not significantly outperform simpler models, indicating that the existing feature set may not capture all relevant predictors of NFL penalties or drive outcomes.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{images/nn_performance.png}
+  \caption{Validation loss and MAE across training epochs for the neural network model.}
+\end{figure}
+
+\section{Discussion}
+
+The results indicate a challenging landscape for directly predicting NFL game dynamics from penalties and drive data. While defensive behaviors and game situations like line of scrimmage and time left play pivotal roles, the predictive power remains moderate. Future work should consider integrating more dynamic and contextual game data, including player-specific actions and more detailed situational variables.
+
+The variability in referee behavior also presents an intriguing avenue for further exploration. As shown, referee crews significantly influence penalty frequencies, suggesting a potential for models that can adapt to referee-specific patterns.
 
 \section{Conclusion}
 
-TODO: Conclusion and future work
+This project explored various machine learning approaches to understand and predict the impacts of NFL penalties on game outcomes. While we achieved moderate success in some areas, the results underscore the complexity of the task and the potential need for richer datasets and more refined models. Future research could explore the integration of more granular data, such as player tracking information, to enhance model accuracy and applicability.
 
 %%
 %% The next two lines define the bibliography style to be used, and

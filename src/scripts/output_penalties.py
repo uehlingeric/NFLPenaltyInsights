@@ -1,3 +1,11 @@
+"""
+Eric Uehling
+4.27.24
+
+Description: This script reads in the penalties.csv file and extracts the penalty data. It calculates the total occurrences of each penalty, 
+filters out entries where penalties are either declined or offsetting, calculates the most common yardage or spot for each penalty, 
+and writes the results to penalty_list.csv.
+"""
 import pandas as pd
 
 def extract_penalty_data():
